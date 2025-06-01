@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import subprocess
 import sys
@@ -124,18 +126,44 @@ def unmount_sshfs(variable):
         else:
             sys.exit(1)
 
+def show_help():
+    """Display help information about the script."""
+    print("MountyPy - A tool for mounting remote SSHFS directories")
+    print("\nUsage:")
+    print(f"  python3 {os.path.basename(__file__)} [--help]")
+    print(f"  python3 {os.path.basename(__file__)} mount <VARIABLE>")
+    print(f"  python3 {os.path.basename(__file__)} unmount <VARIABLE>")
+    print("\nCommands:")
+    print("  mount    Mount a remote sandbox directory")
+    print("  unmount  Unmount a previously mounted sandbox directory")
+    print("\nOptions:")
+    print("  --help   Show this help message")
+    print("\nArguments:")
+    print("  VARIABLE  Name of the sandbox to mount/unmount")
+    print("\nConfiguration:")
+    print("  The script requires a config.json file in the same directory with:")
+    print("  - endpoint.host: Remote server hostname")
+    print("  - endpoint.user: SSH username")
+    print("  - endpoint.sandbox_path: Base path for sandboxes")
+    print("\nSupported platforms: Windows, macOS, Linux")
+    print("\nRequirements:")
+    print("1. config.json file in the same directory as the script")
+    print("2. sshfs installed on your system:")
+    print("  - Windows: Install sshfs-win or WinFsp + SSHFS-Win")
+    print("  - macOS: Install via Homebrew: brew install sshfs")
+    print("  - Linux: Install via package manager: apt install sshfs")
+    print("\nMount location:")
+    print("  - Linux: ~/mounts/<VARIABLE>")
+    print("  - macOS/Windows: ~/Documents/mounts/<VARIABLE>")
+
 if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "--help":
+        show_help()
+        sys.exit(0)
+        
     if len(sys.argv) != 3 or sys.argv[1] not in ["mount", "unmount"]:
-        print("Usage:")
-        print(f"  python3 {os.path.basename(__file__)} mount <VARIABLE>")
-        print(f"  python3 {os.path.basename(__file__)} unmount <VARIABLE>")
-        print("\nSupported platforms: Windows, macOS, Linux")
-        print("Requirements:")
-        print("1. config.json file in the same directory as the script")
-        print("2. sshfs installed on your system:")
-        print("  - Windows: Install sshfs-win or WinFsp + SSHFS-Win")
-        print("  - macOS: Install via Homebrew: brew install sshfs")
-        print("  - Linux: Install via package manager: apt install sshfs")
+        print("Error: Invalid arguments")
+        print(f"Use 'python3 {os.path.basename(__file__)} --help' for usage information")
         sys.exit(1)
     
     command = sys.argv[1]
