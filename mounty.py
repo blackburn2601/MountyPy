@@ -8,11 +8,15 @@ def get_mount_directory(variable):
     if platform.system() == "Windows":
         # Use a more appropriate location for Windows
         base_dir = os.path.join(os.path.expanduser("~"), "Documents", "mounts")
+        return os.path.join(base_dir, variable)
+    elif platform.system() == "Linux":
+        # On Linux, create mounts directory in user's home directory
+        base_dir = os.path.join(os.path.expanduser("~"), "mounts")
+        return os.path.join(base_dir, variable)
     else:
-        # Unix-like systems (macOS, Linux)
+        # macOS and other Unix-like systems
         base_dir = os.path.join(os.path.expanduser("~"), "Documents", "mounts")
-    
-    return os.path.join(base_dir, variable)
+        return os.path.join(base_dir, variable)
 
 def mount_sshfs(variable):
     mount_dir = get_mount_directory(variable)
