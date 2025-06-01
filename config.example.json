@@ -1,0 +1,7 @@
+{
+    "endpoint": {
+        "host": "your.ssh.host",
+        "user": "your_username",
+        "sandbox_path": "/path/to/sandboxes"
+    }
+} 

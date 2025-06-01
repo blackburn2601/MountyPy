@@ -2,6 +2,20 @@ import os
 import subprocess
 import sys
 import platform
+import json
+
+def load_config():
+    """Load configuration from config.json file."""
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("Error: config.json not found. Please ensure it exists in the same directory as the script.")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON in config.json file.")
+        sys.exit(1)
 
 def get_mount_directory(variable):
     """Get platform-independent mount directory path."""
@@ -19,11 +33,15 @@ def get_mount_directory(variable):
         return os.path.join(base_dir, variable)
 
 def mount_sshfs(variable):
+    config = load_config()
+    endpoint = config['endpoint']
     mount_dir = get_mount_directory(variable)
     os.makedirs(mount_dir, exist_ok=True)
     
     # Check platform and adjust command accordingly
     system = platform.system()
+    
+    remote_path = f"{endpoint['user']}@{endpoint['host']}:{endpoint['sandbox_path']}/{variable}"
     
     if system == "Windows":
         # On Windows, we need sshfs-win or similar tool
@@ -31,7 +49,7 @@ def mount_sshfs(variable):
         sshfs_command = [
             "sshfs",
             "-o", "noatime,reconnect,ServerAliveInterval=20,ServerAliveCountMax=3,cache_timeout=1200,entry_timeout=1200,attr_timeout=1200,negative_timeout=1200",
-            f"nintendo_admin@login.dev.actindo.com:/home/nintendo_admin/sandboxes/{variable}",
+            remote_path,
             mount_dir
         ]
         shell = False
@@ -41,7 +59,7 @@ def mount_sshfs(variable):
         sshfs_command = [
             "sshfs",
             "-o", "noatime,reconnect,ServerAliveInterval=20,ServerAliveCountMax=3,cache_timeout=1200,entry_timeout=1200,attr_timeout=1200,negative_timeout=1200",
-            f"nintendo_admin@login.dev.actindo.com:/home/nintendo_admin/sandboxes/{variable}",
+            remote_path,
             mount_dir
         ]
         shell = False
@@ -112,7 +130,9 @@ if __name__ == "__main__":
         print(f"  python3 {os.path.basename(__file__)} mount <VARIABLE>")
         print(f"  python3 {os.path.basename(__file__)} unmount <VARIABLE>")
         print("\nSupported platforms: Windows, macOS, Linux")
-        print("Note: Requires sshfs to be installed:")
+        print("Requirements:")
+        print("1. config.json file in the same directory as the script")
+        print("2. sshfs installed on your system:")
         print("  - Windows: Install sshfs-win or WinFsp + SSHFS-Win")
         print("  - macOS: Install via Homebrew: brew install sshfs")
         print("  - Linux: Install via package manager: apt install sshfs")
