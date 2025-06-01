@@ -1,6 +1,6 @@
 # MountyPy
 
-A cross-platform Python tool for mounting remote SSH filesystems using SSHFS. Easily mount and unmount remote directories from `login.dev.actindo.com` to your local machine.
+A cross-platform Python tool for mounting remote SSH filesystems using SSHFS. Easily mount and unmount remote directories from your configurated host to your local machine.
 
 ## Features
 
@@ -131,7 +131,7 @@ The tool uses optimized SSHFS options for better performance and reliability:
 ## Troubleshooting
 
 ### Connection Issues
-- Ensure you have SSH access to `login.dev.actindo.com`
+- Ensure you have SSH access to the remote host
 - Check if your SSH key is properly configured
 - Verify the sandbox name exists on the remote server
 
@@ -179,7 +179,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Security Notes
 
-- This tool connects to `nintendo_admin@login.dev.actindo.com`
+- This tool connects to the configured remote host
 - Ensure your SSH keys are properly secured
 - Use SSH agent for key management
 - Consider using SSH config for connection settings
