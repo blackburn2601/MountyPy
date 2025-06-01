@@ -11,6 +11,34 @@ A cross-platform Python tool for mounting remote SSH filesystems using SSHFS. Ea
 - ✅ Easy mount/unmount operations
 - ✅ Optimized SSHFS options for better performance
 
+## Configuration
+
+The script requires a `config.json` file in the same directory as `mounty.py`. To get started:
+
+1. Copy the example configuration file:
+```bash
+cp config.example.json config.json
+```
+
+2. Edit `config.json` with your specific settings:
+```json
+{
+    "endpoint": {
+        "host": "your.ssh.host",
+        "user": "your_username",
+        "sandbox_path": "/path/to/sandboxes"
+    }
+}
+```
+
+Note: The `config.json` file is ignored by git to prevent accidentally committing sensitive information.
+
+### Configuration Options
+
+- `host`: The SSH host to connect to
+- `user`: The SSH username
+- `sandbox_path`: The base path where sandboxes are located on the remote server
+
 ## Requirements
 
 ### Linux
