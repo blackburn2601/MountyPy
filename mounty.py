@@ -46,15 +46,22 @@ def mount_sshfs(variable):
     remote_path = f"{endpoint['user']}@{endpoint['host']}:{endpoint['sandbox_path']}/{variable}"
     
     if system == "Windows":
-        # On Windows, we need sshfs-win or similar tool
-        # This assumes sshfs-win is installed and available in PATH
+        # On Windows, use net use command for SSHFS
+        # First, ensure the mount directory exists and is empty
+        if os.path.exists(mount_dir):
+            try:
+                # Try to unmount if already mounted
+                subprocess.run(["net", "use", mount_dir, "/delete", "/y"], check=False)
+            except subprocess.CalledProcessError:
+                pass
+        
+        # Use net use to mount the SSHFS drive
         sshfs_command = [
-            "sshfs",
-            "-o", "noatime,reconnect,ServerAliveInterval=20,ServerAliveCountMax=3,cache_timeout=1200,entry_timeout=1200,attr_timeout=1200,negative_timeout=1200",
-            remote_path,
-            mount_dir
+            "net", "use",
+            mount_dir,  # Use the mount directory as the drive path
+            f"\\\\sshfs\\{endpoint['user']}@{endpoint['host']}\\{endpoint['sandbox_path']}\\{variable}"
         ]
-        shell = False
+        shell = True  # Use shell=True for Windows commands
         executable = None
     else:
         # Unix-like systems (macOS, Linux)
@@ -74,14 +81,14 @@ def mount_sshfs(variable):
         print(f"Directory successfully mounted at: {mount_dir}")
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
-        print(f"Make sure sshfs is installed on your system.")
+        print(f"Make sure SSHFS-Win is installed on your system.")
         if system == "Windows":
-            print("On Windows, install sshfs-win or WinFsp + SSHFS-Win")
+            print("On Windows, install WinFsp + SSHFS-Win")
         sys.exit(1)
     except FileNotFoundError:
-        print("Error: sshfs command not found.")
+        print("Error: Required command not found.")
         if system == "Windows":
-            print("On Windows, install sshfs-win or WinFsp + SSHFS-Win")
+            print("On Windows, install WinFsp + SSHFS-Win")
         else:
             print("On Unix systems, install sshfs package")
         sys.exit(1)
@@ -92,10 +99,12 @@ def unmount_sshfs(variable):
     
     # Determine the correct unmount command based on the platform
     if system == "Windows":
-        # On Windows with sshfs-win
-        unmount_command = ["sshfs", "-u", mount_dir]
+        # On Windows with SSHFS-Win
+        unmount_command = ["net", "use", mount_dir, "/delete", "/y"]
+        shell = True
     elif system == "Darwin":  # macOS
         unmount_command = ["umount", mount_dir]
+        shell = False
     elif system == "Linux":
         # Try fusermount first (more reliable for FUSE mounts), fallback to umount
         try:
@@ -105,13 +114,14 @@ def unmount_sshfs(variable):
         except (subprocess.CalledProcessError, FileNotFoundError):
             # Fallback to regular umount
             unmount_command = ["umount", mount_dir]
+            shell = False
     else:
         print(f"Unmounting is not supported on {system}.")
         sys.exit(1)
 
     try:
         print(f"Unmounting directory: {variable}")
-        subprocess.run(unmount_command, check=True)
+        subprocess.run(unmount_command, check=True, shell=shell)
         print(f"Directory successfully unmounted: {mount_dir}")
     except subprocess.CalledProcessError as e:
         print(f"Error unmounting directory: {e}")
