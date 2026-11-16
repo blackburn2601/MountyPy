@@ -1,26 +1,65 @@
+<div align="center">
+
 # MountyPy
 
-A cross-platform Python tool for mounting remote SSH filesystems using SSHFS. Easily mount and unmount remote directories from your configurated host to your local machine.
+**Mount and unmount remote project folders over SSH with one command.** A small cross-platform Python wrapper
+around SSHFS: you give it a sandbox name, it works out the remote path and a sensible local mount point.
 
-## Features
+![Python](https://img.shields.io/badge/Python-3-3776ab)
+![Platforms](https://img.shields.io/badge/Linux%20·%20macOS%20·%20Windows-supported-555)
+![Dependencies](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen)
+![SSHFS](https://img.shields.io/badge/SSHFS-FUSE-orange)
 
-- ✅ Cross-platform support (Linux, macOS, Windows)
-- ✅ Automatic directory creation
-- ✅ Platform-specific mount locations
-- ✅ Robust error handling
-- ✅ Easy mount/unmount operations
-- ✅ Optimized SSHFS options for better performance
+</div>
 
-## Configuration
+---
 
-The script requires a `config.json` file in the same directory as `mounty.py`. To get started:
+## About
 
-1. Copy the example configuration file:
-```bash
-cp config.example.json config.json
+Working on files that live on a remote development server is easier when they simply appear as a local folder.
+SSHFS does that, but its command line is long, and the mount options that make it usable over a flaky connection
+are easy to forget. MountyPy keeps them in one place:
+
+```console
+$ python3 mounty.py mount my-project      # remote: <user>@<host>:<sandbox_path>/my-project
+$ python3 mounty.py unmount my-project
 ```
 
-2. Edit `config.json` with your specific settings:
+One host, one base path and the sandbox names under it, all configured once in a JSON file. It is a single script
+with no third-party dependencies, only the standard library and the `sshfs` tool.
+
+## How it works
+
+```
+mounty.py mount my-project
+   │
+   ├─ read config.json            host, user, sandbox_path
+   ├─ local mount point           Linux: ~/mounts/my-project
+   │                              macOS / Windows: ~/Documents/mounts/my-project
+   ├─ create the directory if missing
+   └─ sshfs -o <options> user@host:/path/to/sandboxes/my-project <mount point>
+```
+
+`unmount` removes the mount again: `fusermount -u` on Linux (falling back to `umount`), `umount` on macOS and
+`sshfs -u` on Windows.
+
+The mount options are chosen for a long-lived development connection:
+
+| Option | Effect |
+|---|---|
+| `reconnect` | reconnect automatically after a dropped connection |
+| `ServerAliveInterval=20`, `ServerAliveCountMax=3` | detect a dead connection after about a minute instead of hanging |
+| `noatime` | do not write access times back to the server |
+| `cache_timeout`, `entry_timeout`, `attr_timeout`, `negative_timeout` = `1200` | cache listings and attributes for 20 minutes, which makes browsing a large tree fast |
+
+## Quick start
+
+```bash
+git clone git@github.com:blackburn2601/MountyPy.git && cd MountyPy
+
+cp config.example.json config.json     # then edit it
+```
+
 ```json
 {
     "endpoint": {
@@ -31,162 +70,98 @@ cp config.example.json config.json
 }
 ```
 
-Note: The `config.json` file is ignored by git to prevent accidentally committing sensitive information.
+`config.json` is listed in `.gitignore`, so your host and user name stay out of the repository.
 
-### Configuration Options
-
-- `host`: The SSH host to connect to
-- `user`: The SSH username
-- `sandbox_path`: The base path where sandboxes are located on the remote server
-
-## Requirements
-
-### Linux
 ```bash
-# Ubuntu/Debian
-sudo apt install sshfs
-
-# Fedora/CentOS/RHEL
-sudo dnf install fuse-sshfs
-# or
-sudo yum install fuse-sshfs
-
-# Arch Linux
-sudo pacman -S sshfs
-```
-
-### macOS
-```bash
-# Using Homebrew
-brew install sshfs
-
-# Using MacPorts
-sudo port install sshfs
-```
-
-### Windows
-Install one of the following:
-- **sshfs-win**: Download from [GitHub releases](https://github.com/winfsp/sshfs-win/releases)
-- **WinFsp + SSHFS-Win**: 
-  1. Install [WinFsp](https://winfsp.dev/rel/)
-  2. Install [SSHFS-Win](https://github.com/winfsp/sshfs-win/releases)
-
-## Installation
-
-1. Clone this repository:
-```bash
-git clone https://github.com/yourusername/MountyPy.git
-cd MountyPy
-```
-
-2. Make the script executable (Linux/macOS):
-```bash
-chmod +x mounty.py
-```
-
-## Usage
-
-### Mount a remote directory
-```bash
-python3 mounty.py mount <SANDBOX_NAME>
-```
-
-### Unmount a directory
-```bash
-python3 mounty.py unmount <SANDBOX_NAME>
-```
-
-### Examples
-```bash
-# Mount a sandbox called "my-project"
 python3 mounty.py mount my-project
-
-# Unmount the same sandbox
 python3 mounty.py unmount my-project
 ```
 
-## Mount Locations
+SSH authentication is whatever your `ssh` setup already does (keys, agent, `~/.ssh/config`); MountyPy does not
+handle credentials itself.
 
-The tool creates mount points in different locations depending on your operating system:
+## Requirements
 
-| Platform | Mount Location |
-|----------|----------------|
-| **Linux** | `~/mounts/<SANDBOX_NAME>` |
-| **macOS** | `~/Documents/mounts/<SANDBOX_NAME>` |
-| **Windows** | `~/Documents/mounts/<SANDBOX_NAME>` |
+Python 3 and `sshfs`:
 
-## SSHFS Options
+| Platform | Install |
+|---|---|
+| Debian / Ubuntu | `sudo apt install sshfs` |
+| Fedora / RHEL | `sudo dnf install fuse-sshfs` |
+| Arch | `sudo pacman -S sshfs` |
+| macOS | `brew install sshfs` (needs macFUSE) |
+| Windows | [WinFsp](https://winfsp.dev/rel/) and [SSHFS-Win](https://github.com/winfsp/sshfs-win/releases) |
 
-The tool uses optimized SSHFS options for better performance and reliability:
+## Usage and output
 
-- `noatime` - Don't update access times
-- `reconnect` - Automatically reconnect on connection drops
-- `ServerAliveInterval=20` - Send keepalive packets every 20 seconds
-- `ServerAliveCountMax=3` - Maximum failed keepalive attempts
-- `cache_timeout=1200` - Cache timeout (20 minutes)
-- `entry_timeout=1200` - Directory entry cache timeout
-- `attr_timeout=1200` - File attribute cache timeout
-- `negative_timeout=1200` - Negative lookup cache timeout
+```console
+$ python3 mounty.py --help
+MountyPy - A tool for mounting remote SSHFS directories
+
+Usage:
+  python3 mounty.py [--help]
+  python3 mounty.py mount <VARIABLE>
+  python3 mounty.py unmount <VARIABLE>
+  ...
+```
+
+These are real outputs of the error paths, run on Linux without `sshfs` installed:
+
+```console
+$ python3 mounty.py foo
+Error: Invalid arguments
+Use 'python3 mounty.py --help' for usage information
+
+$ python3 mounty.py mount demo          # no config.json yet
+Platform: Linux
+Error: config.json not found. Please ensure it exists in the same directory as the script.
+
+$ python3 mounty.py mount demo          # config present, sshfs missing
+Platform: Linux
+Mounting directory: demo
+Mount path: /home/<user>/mounts/demo
+Error: sshfs command not found.
+On Unix systems, install sshfs package
+```
 
 ## Troubleshooting
 
-### Connection Issues
-- Ensure you have SSH access to the remote host
-- Check if your SSH key is properly configured
-- Verify the sandbox name exists on the remote server
+| Problem | What to check |
+|---|---|
+| Connection refused / permission denied | `ssh user@host` works without MountyPy; the sandbox exists under `sandbox_path` |
+| `fusermount: failed to open /dev/fuse` | add yourself to the `fuse` group (`sudo usermod -aG fuse $USER`, then log in again) |
+| "Mount point already in use" | `python3 mounty.py unmount <name>`, then mount again |
+| Windows: nothing happens | the WinFsp service must be running; try an elevated prompt |
 
-### Permission Issues (Linux/macOS)
-```bash
-# Add user to fuse group (may require logout/login)
-sudo usermod -a -G fuse $USER
+## Tech stack
+
+| | |
+|---|---|
+| Language | Python 3, standard library only (`subprocess`, `platform`, `json`, `os`) |
+| Mounting | SSHFS over FUSE (WinFsp on Windows) |
+| Config | one JSON file next to the script |
+
+## Project layout
+
+```
+mounty.py             the whole tool: config, mount point logic, mount / unmount
+config.example.json   template for config.json (which is gitignored)
 ```
 
-### Mount Already Exists
-If you get "mount point already in use" errors:
-```bash
-# Unmount first, then try mounting again
-python3 mounty.py unmount <SANDBOX_NAME>
-python3 mounty.py mount <SANDBOX_NAME>
-```
+## Limitations
 
-### Windows-Specific Issues
-- Ensure WinFsp service is running
-- Run Command Prompt as Administrator if needed
-- Check Windows Defender/Antivirus settings
+I read through the code and ran the error paths above. I could not run a real mount (the machine used for this
+review has no `sshfs` or SSH server), so the mount and unmount commands themselves, in particular on macOS and Windows,
+are untested here. Known weaknesses:
 
-## Platform Detection
-
-The tool automatically detects your platform and adjusts behavior accordingly:
-
-```bash
-python3 mounty.py mount test-sandbox
-# Output: Platform: Linux
-# Output: Mounting directory: test-sandbox
-# Output: Mount path: /home/username/mounts/test-sandbox
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test on multiple platforms if possible
-5. Submit a pull request
+- **The sandbox name is not validated.** A name such as `../../x` leaves `~/mounts` locally and changes the remote
+  path. Use it only with names you trust.
+- **An empty mount directory is left behind** when `sshfs` is missing or fails, because the directory is created
+  before the command runs.
+- **One host only.** There is a single endpoint in the config.
+- **The Windows unmount** calls `sshfs -u`; I could not confirm that SSHFS-Win supports this, so treat it as unverified.
+- No tests.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Security Notes
-
-- This tool connects to the configured remote host
-- Ensure your SSH keys are properly secured
-- Use SSH agent for key management
-- Consider using SSH config for connection settings
-
-## Support
-
-For issues and questions:
-1. Check the [Issues](https://github.com/yourusername/MountyPy/issues) page
-2. Create a new issue with platform and error details
-3. Include relevant log output 
+MIT, as stated by the author. The repository does not contain a `LICENSE` file yet.
